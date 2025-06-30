@@ -1,14 +1,21 @@
 # Base values for nupm that are used as defaults if not present in `$env.nupm`
 export const REGISTRY_IDX_FILENAME = "registry_index.nuon"
+export const REGISTRY_FILENAME = "registry.nuon"
+export const PACKAGE_FILENAME = "nupm.nuon"
+
 export const BASE_NUPM_CONFIG = {
-    default: {
-        home: ($nu.default-config-dir | path join nupm)
-        cache: ($nu.default-config-dir | path join nupm cache)
-        index-path: ($nu.default-config-dir | path join nupm $REGISTRY_IDX_FILENAME)
-        temp: ($nu.temp-path | path join nupm)
-        registries: {
-            nupm: 'https://raw.githubusercontent.com/nushell/nupm/main/registry/registry.nuon'
-        }
+    home: ($nu.default-config-dir | path join nupm)
+    cache: ($nu.default-config-dir | path join nupm cache)
+    index-path: ($nu.default-config-dir | path join nupm $REGISTRY_IDX_FILENAME)
+    temp: ($nu.temp-path | path join nupm)
+    registries: {
+        nupm: 'https://raw.githubusercontent.com/nushell/nupm/main/registry/registry.nuon'
+    }
+    config: {
+        # TODO
+        # sync_list: { ... }
+        # sync_on_launch: false
+        nu_search_path: false
     }
 }
 
@@ -93,7 +100,7 @@ export def cache-dir [--ensure]: nothing -> path {
 }
 
 export def tmp-dir [subdir: string, --ensure]: nothing -> path {
-    let d = $BASE_NUPM_CONFIG.default.temp
+    let d = $BASE_NUPM_CONFIG.temp
         | path join $subdir
         | path join (random chars -l 8)
 
@@ -109,7 +116,7 @@ export def tmp-dir [subdir: string, --ensure]: nothing -> path {
 export def find-root [dir: path]: [ nothing -> path, nothing -> nothing] {
     let root_candidate = 1..($dir | path split | length)
         | reduce -f $dir {|_, acc|
-            if ($acc | path join nupm.nuon | path exists) {
+            if ($acc | path join $PACKAGE_FILENAME | path exists) {
                 $acc
             } else {
                 $acc | path dirname
@@ -118,7 +125,7 @@ export def find-root [dir: path]: [ nothing -> path, nothing -> nothing] {
 
     # We need to do the last check in case the reduce loop ran to the end
     # without finding nupm.nuon
-    if ($root_candidate | path join nupm.nuon | path type) == 'file' {
+    if ($root_candidate | path join $PACKAGE_FILENAME | path type) == 'file' {
         $root_candidate
     } else {
         null
