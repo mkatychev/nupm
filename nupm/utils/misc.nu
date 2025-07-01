@@ -66,6 +66,25 @@ export module url {
     }
 }
 
+# HTTP utilities with registry-specific authentication support
+export module http {
+    # Call `http get` with $nupm.config.headers values for registry-specific authentication
+    export def config-get [url: string, registry: string]: nothing -> any {
+        # Check if we have custom headers configured for this registry
+        if ($env.nupm.config.headers? | is-not-empty) and ($registry in $env.nupm.config.headers) {
+            # Get the headers closure for this registry and execute it
+            let headers_closure = $env.nupm.config.headers | get $registry
+            let registry_headers = do $headers_closure
+            
+            # Use http get with custom headers
+            http get $url --headers $registry_headers
+        } else {
+            # Fall back to normal http get
+            http get $url
+        }
+    }
+}
+
 # workaround for https://github.com/nushell/nushell/issues/16036
 export def --env flatten-nupm-env [] {
     $env.NUPM_HOME = $env.nupm.home

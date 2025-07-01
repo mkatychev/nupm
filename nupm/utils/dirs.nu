@@ -16,6 +16,8 @@ export const BASE_NUPM_CONFIG = {
         # sync_list: { ... }
         # sync_on_launch: false
         nu_search_path: false
+        # headers: { "test-package" : { || {my-header-key: my-header-value} } }
+        headers: {}  # record<registry: string, headers: closure> where closure returns record
     }
 }
 

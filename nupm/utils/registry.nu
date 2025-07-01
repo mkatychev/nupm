@@ -2,7 +2,7 @@
 
 use dirs.nu cache-dir
 use log.nu throw-error
-use misc.nu [check-cols url hash-file hash-fn]
+use misc.nu [check-cols url hash-file hash-fn http]
 
 # Columns of a registry file
 export const REG_COLS = [ name path hash ]
@@ -53,7 +53,7 @@ export def search-package [
                     let reg = if ($reg_file | path exists) {
                         open $reg_file
                     } else {
-                        let data = http get $url_or_path
+                        let data = http config-get $url_or_path $name
                         mkdir $registry_cache_dir
                         $data | save --force $reg_file
                         $data
@@ -88,7 +88,7 @@ export def search-package [
 
                 if $registry.is_url and (not ($pkg_file_path | path exists) or $hash != $row.hash) {
                     let url = $url_or_path | url update-name $row.path
-                    http get $url | save --force $pkg_file_path
+                    http config-get $url $name | save --force $pkg_file_path
                 }
 
                 let new_hash = open $pkg_file_path | to nuon | hash-fn

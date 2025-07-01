@@ -16,14 +16,15 @@ export def list []: nothing -> table {
 }
 
 
-def describe-comp [] { list | get name }
+def registry-names [] { list | get name }
 # Show detailed information about a specific registry
 # returning a list of package names, type, and version
 @example "Show registry information" { nupm registry describe nupm }
 export def describe [
-    registry: string@describe-comp # Name of the registry
+    registry: string@registry-names
 ]: nothing -> table {
     use utils/dirs.nu cache-dir
+    use utils/misc.nu [url http]
 
     if not ($registry in $env.nupm.registries) {
         throw-error $"Registry '($registry)' not found"
@@ -42,7 +43,7 @@ export def describe [
             open $registry_url
         } else {
             # Remote registry - fetch and cache
-            let data = http get $registry_url
+            let data = http config-get $registry_url $registry
             mkdir $registry_cache_dir
             $data | save $cached_registry
             $data
@@ -62,7 +63,7 @@ export def describe [
                 # Remote package - fetch and cache
                 let base_url = $registry_url | url parse
                 let package_url = $base_url | update path ($base_url.path | path dirname | path join $entry.path) | url join
-                let data = http get $package_url
+                let data = http config-get $package_url $registry
                 $data | save $package_cache_path
                 $data
             }
@@ -156,8 +157,8 @@ export def --env rename [
 @example "Fetch a specific registry" { nupm registry fetch nupm }
 @example "Fetch all registries" { nupm registry fetch --all }
 export def fetch [
-    registry?: string,  # Name of the registry to fetch (optional if --all is used)
-    --all,          # Fetch all configured registries
+    registry?: string@registry-names,
+    --all,  # Fetch all configured registries
 ] {
     if $all {
         # Fetch all registries
@@ -186,6 +187,7 @@ export def fetch [
 # Helper function to fetch a single registry
 def fetch-registry [name: string, url: string] {
     use utils/dirs.nu cache-dir
+    use utils/misc.nu [url http]
 
     let registry_cache_dir = cache-dir --ensure | path join $name
     mkdir $registry_cache_dir
@@ -206,15 +208,16 @@ def fetch-registry [name: string, url: string] {
         print $"Fetching registry '($name)' from ($url)..."
 
         # Fetch registry index
-        let registry_data = http get $url
+        # table<name: string, path: string, hash: string>
+        let registry_data = http config-get $url $name
         $registry_data | save --force ($registry_cache_dir | path join $REGISTRY_FILENAME)
 
         # Fetch all package metadata files
-        $registry_data | each {|entry|
+        $registry_data | par-each {|entry|
             print $"  Fetching package ($entry.name)..."
             let base_url = $url | url parse
             let package_url = $base_url | update path ($base_url.path | path dirname | path join $entry.path) | url join
-            let package_data = http get $package_url
+            let package_data = http config-get $package_url $name
             $package_data | save --force ($registry_cache_dir | path join $"($entry.name).nuon")
         }
     }
