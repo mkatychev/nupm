@@ -18,10 +18,6 @@ export-env {
     $env.nupm.default = $BASE_NUPM_CONFIG
     # read from registry index but don't overwrite registires already present in $env.nupm.registries
     $env.nupm.registries = $env.nupm.index-path | open-index | merge $env.nupm.registries
-    $env.ENV_CONVERSIONS.nupm = {
-        from_string: { |s| $s | from nuon }
-        to_string: { |v| $v | to nuon }
-    }
     if $env.nupm.config.nu_search_path {
         let nupm_lib_dirs = [modules, scripts] | each {|s| $env.nupm.home | path join $s }
         $env.NU_LIB_DIRS = $env.NU_LIB_DIRS | prepend $nupm_lib_dirs | uniq

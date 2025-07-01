@@ -71,13 +71,11 @@ export module http {
     # Call `http get` with $nupm.config.headers values for registry-specific authentication
     export def config-get [url: string, registry: string]: nothing -> any {
         # Check if we have custom headers configured for this registry
-        if ($env.nupm.config.headers? | is-not-empty) and ($registry in $env.nupm.config.headers) {
+        let headers_fn = $env.nupm.config?.headers? | get $registry -i
+        if ($headers_fn | is-not-empty) {
             # Get the headers closure for this registry and execute it
-            let headers_closure = $env.nupm.config.headers | get $registry
-            let registry_headers = do $headers_closure
-            
             # Use http get with custom headers
-            http get $url --headers $registry_headers
+            http get $url --headers (do $headers_fn)
         } else {
             # Fall back to normal http get
             http get $url
